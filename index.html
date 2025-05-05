@@ -4,12 +4,28 @@
   <title>Aqualeaf Live Demo</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <style>
-    video, canvas { max-width: 100%; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    video, canvas {
+      max-width: 100%;
+      border-radius: 10px;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: green;
+    }
   </style>
 </head>
 <body>
   <h2>Aqualeaf: Live Demo</h2>
   <video id="webcam" autoplay playsinline width="300" height="225"></video>
+  <div id="result">Loading model...</div>
+
   <script>
     let model;
 
@@ -24,20 +40,35 @@
 
     async function run() {
       model = await tf.loadGraphModel('model.json');
+      document.getElementById('result').innerText = 'Model loaded. Starting prediction...';
       await setupWebcam();
 
       const webcam = document.getElementById('webcam');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
+      // 🔁 Your model output labels go here
+      const labels = ["Healthy", "Dry, Needs Medicine or Water", "fire / burn"]; // Update this to match your model
+
       setInterval(async () => {
         canvas.width = webcam.videoWidth;
         canvas.height = webcam.videoHeight;
         ctx.drawImage(webcam, 0, 0);
-        const input = tf.browser.fromPixels(canvas).resizeNearestNeighbor([224, 224]).toFloat().expandDims();
+
+        const input = tf.browser.fromPixels(canvas)
+          .resizeNearestNeighbor([224, 224])
+          .toFloat()
+          .expandDims();
+
         const prediction = await model.predict(input).data();
-        console.log("Prediction:", prediction); // Update this line to show result on screen
-      }, 2000); // Every 2 seconds
+        const maxIndex = prediction.indexOf(Math.max(...prediction));
+        const label = labels[maxIndex];
+        const confidence = (prediction[maxIndex] * 100).toFixed(2);
+
+        document.getElementById('result').innerText = `Prediction: ${label} (${confidence}%)`;
+
+        tf.dispose(input);
+      }, 2000);
     }
 
     run();
