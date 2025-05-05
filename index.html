@@ -28,12 +28,13 @@
 
   <script>
     let model;
+    const labels = ["Healthy", "Dry, Needs Medicine or Water", "Fire/Burn"];
 
     async function setupWebcam() {
       const webcam = document.getElementById('webcam');
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       webcam.srcObject = stream;
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         webcam.onloadedmetadata = () => resolve();
       });
     }
@@ -47,27 +48,33 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // 🔁 Your model output labels go here
-      const labels = ["Healthy", "Dry, Needs Medicine or Water", "fire / burn"]; // Update this to match your model
-
       setInterval(async () => {
         canvas.width = webcam.videoWidth;
         canvas.height = webcam.videoHeight;
         ctx.drawImage(webcam, 0, 0);
 
         const input = tf.browser.fromPixels(canvas)
-          .resizeNearestNeighbor([224, 224])
+          .resizeNearestNeighbor([416, 416])
           .toFloat()
+          .div(255.0)
           .expandDims();
 
-        const prediction = await model.predict(input).data();
-        const maxIndex = prediction.indexOf(Math.max(...prediction));
-        const label = labels[maxIndex];
-        const confidence = (prediction[maxIndex] * 100).toFixed(2);
+        try {
+          const predictionTensor = await model.predict(input);
+          const prediction = await predictionTensor.data();
+          tf.dispose([input, predictionTensor]);
 
-        document.getElementById('result').innerText = `Prediction: ${label} (${confidence}%)`;
+          const maxIndex = prediction.indexOf(Math.max(...prediction));
+          const label = labels[maxIndex] || "Unknown";
+          const confidence = (prediction[maxIndex] * 100).toFixed(2);
 
-        tf.dispose(input);
+          document.getElementById('result').innerText =
+            `Prediction: ${label} (${confidence}%)`;
+
+        } catch (e) {
+          console.error("Prediction error:", e);
+          document.getElementById('result').innerText = `Error: ${e.message}`;
+        }
       }, 2000);
     }
 
