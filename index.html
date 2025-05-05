@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aqualeaf Live Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <style>
+    video, canvas { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <h2>Aqualeaf: Live Demo</h2>
+  <video id="webcam" autoplay playsinline width="300" height="225"></video>
+  <script>
+    let model;
+
+    async function setupWebcam() {
+      const webcam = document.getElementById('webcam');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      webcam.srcObject = stream;
+      return new Promise((resolve) => {
+        webcam.onloadedmetadata = () => resolve();
+      });
+    }
+
+    async function run() {
+      model = await tf.loadGraphModel('model.json');
+      await setupWebcam();
+
+      const webcam = document.getElementById('webcam');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      setInterval(async () => {
+        canvas.width = webcam.videoWidth;
+        canvas.height = webcam.videoHeight;
+        ctx.drawImage(webcam, 0, 0);
+        const input = tf.browser.fromPixels(canvas).resizeNearestNeighbor([224, 224]).toFloat().expandDims();
+        const prediction = await model.predict(input).data();
+        console.log("Prediction:", prediction); // Update this line to show result on screen
+      }, 2000); // Every 2 seconds
+    }
+
+    run();
+  </script>
+</body>
+</html>
