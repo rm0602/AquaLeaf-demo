@@ -1,4 +1,4 @@
-# AquaLeaf
+# AquaLeaf - Spring'26 AI4SG Hackathon Winner
 
 **AquaLeaf** is an AI-powered computer vision project designed to support environmental health and sustainability. Using **TensorFlow** and **OpenCV**, the system analyzes images to detect fires and identify targeted plant diseases.
 
